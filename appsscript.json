@@ -1,0 +1,16 @@
+{
+  "timeZone": "Asia/Tokyo",
+  "dependencies": {
+    "libraries": [{
+      "userSymbol": "cDbAbstraction",
+      "libraryId": "1Ddsb4Y-QDUqcw9Fa-rJKM3EhG2caosS9Nhch7vnQWXP7qkaMmb1wjmTl",
+      "version": "48"
+    }, {
+      "userSymbol": "cDriverSheet",
+      "libraryId": "18fvqHqSs2YwU2ZMUcx6-9GE30u6i663rZTz7K0xNsStHoiJcs487JvN-",
+      "version": "14"
+    }]
+  },
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8"
+}
