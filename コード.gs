@@ -157,8 +157,7 @@ function postDiscordMessage(userName, userInfo) {
     "contentType" : "application/json",
     "payload" : JSON.stringify(payload)
   };
-  // const res = UrlFetchApp.fetch(PropertiesService.getScriptProperties().getProperty(`${userName}_webhook_url`) + "?wait=true", request_options)
-  const res = UrlFetchApp.fetch("https://discord.com/api/webhooks/808415796283310095/YT8wgZuQqoRQzrV7mVyCLa3aWrJQFZxibBRZmI-w2249Iy1leT3oqTIAKavlQZ9wf5v3?wait=true", requestOptions)
+  const res = UrlFetchApp.fetch(PropertiesService.getScriptProperties().getProperty(`${userName}_webhook_url`) + "?wait=true", request_options)
   const messageId = JSON.parse(res.getContentText())["id"]
   liveStatusDB({name: userName, notifiedMessageId: messageId}, mode="write")
   console.log(res.getResponseCode())
