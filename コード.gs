@@ -135,12 +135,8 @@ function postDiscordMessage(userName, userInfo) {
   {
     "method" : "post",
     "contentType" : "application/json",
-    "headers" : {
-      "User-Agent": "DiscordBot (UrlRequest, 1.0)",
-      "Authorization" : `Bot ${PropertiesService.getScriptProperties().getProperty("discord_token")}`
-      },
     "payload" : JSON.stringify(payload)
   };
-  const res = UrlFetchApp.fetch(`https://discord.com/api/channels/742064458939105321/messages`, request_options)
+  const res = UrlFetchApp.fetch(PropertiesService.getScriptProperties().getProperty(`${userName}_webhook_url`), request_options)
   console.log(res.getContentText())
   }
