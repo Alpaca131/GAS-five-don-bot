@@ -14,7 +14,6 @@ const discordChannelIds = {
     "chicken-takashi": 484104654914060301,
     "kun-related": 484104877568688138
     }
-
 const mildomIds = {
     "KUN": 10105254,
     "tanaka90": 10724334,
@@ -22,7 +21,6 @@ const mildomIds = {
     "はつめ": 10846882,
     "Mondo": 10429922
   }
-
 const notifyRoleIds = {
     "KUN": 718449500729114664,
     "tanaka90": 718450954613162015,
@@ -30,19 +28,18 @@ const notifyRoleIds = {
     "はつめ": 718451257332858920,
     "Mondo": 855021753151651860
     }
-
-
-  const liveStatusDBHandler = new cDbAbstraction.DbAbstraction (cDriverSheet, {
+const liveStatusDBHandler = new cDbAbstraction.DbAbstraction (cDriverSheet, {
     siloid: 'LiveStatus',
     dbid: '1n0JOICASYdAlNMPpSEpweLuCq6d5C-9SPZEQmXIP0Xs'
   })
-
-  const latestPlaybackDBHandler = new cDbAbstraction.DbAbstraction (cDriverSheet, {
+const latestPlaybackDBHandler = new cDbAbstraction.DbAbstraction (cDriverSheet, {
     siloid: 'LatestPlayback',
     dbid: '1n0JOICASYdAlNMPpSEpweLuCq6d5C-9SPZEQmXIP0Xs'
   })
 
 
+
+// Main function
 function runRegurarly() {
   for (const userName in mildomIds) {
     const mildomId = mildomIds[userName]
@@ -52,31 +49,33 @@ function runRegurarly() {
     const result = checkUserLiveStatus(mildomId)
     const isUserLive = result["liveStatus"]
     const userInfo = result["userInfo"]
-    const dbLiveStatus = readDBLiveStatus(userName)
+    const dbLiveStatus = readSavedLiveStatus(userName)
 
     if (isUserLive == true) {
       if (dbLiveStatus == false) {
         postDiscordMessage(userName, userInfo)
-        writeDBLiveStatus(userName, true)
+        writeSavedLiveStatus(userName, true)
       }
     }
 
     else {
       if (dbLiveStatus == true) {
-        // 配信終了時のDiscordのメッセージ書き換え処理をここに
-        writeDBLiveStatus(userName, false)
+        
+        writeSavedLiveStatus(userName, false)
       }
     }
   }
 }
+// ------------------------------
 
 
+
+// Mildom API functions
 function fetchMildomUser(user_id) {
  const res = UrlFetchApp.fetch(`https://cloudac.mildom.com/nonolive/gappserv/user/profileV2?user_id=${user_id}&__platform=web`)
  const jsonRes = JSON.parse(res.getContentText())
  return jsonRes["body"]["user_info"]
 }
-
 function checkUserLiveStatus(user_id) {
   const res = fetchMildomUser(user_id)
   return {
@@ -84,14 +83,16 @@ function checkUserLiveStatus(user_id) {
     userInfo: res
     }
 }
-
 function fetchLatastPlayback(user_id) {
   const res = UrlFetchApp.fetch(`https://cloudac.mildom.com/nonolive/videocontent/profile/playbackList?__platform=web&user_id=${user_id}`)
   const jsonRes = JSON.parse(res.getContentText())
   return jsonRes["body"][0]
 }
+// ------------------------------
 
 
+
+// SpreadSheet DB function
 function liveStatusDB(query, mode) {
   if (mode == "read") {
     const value = liveStatusDBHandler.query (query);
@@ -101,22 +102,34 @@ function liveStatusDB(query, mode) {
     const name = query["name"]
     const existingData = liveStatusDBHandler.query ({name: name})
     if (existingData.data.length > 0) {
+      const existingRow = existingData.data[0]
+      // ROWにはあるがqueryにはないkeyを抽出
+      for (const key in query) {
+        delete existingRow[key]
+      }
+      query = Object.assign(existingRow, query)
       liveStatusDBHandler.remove ({name: name})
     }
     liveStatusDBHandler.save (query);
   }
 }
+// ------------------------------
 
 
-function readDBLiveStatus(user_name) {
+
+// SpreadSheet DB utlis functions
+function readSavedLiveStatus(user_name) {
   const liveStatus = liveStatusDB(query={name: user_name}, mode="read")
   return liveStatus[0]["liveStatus"]
 }
-
-function writeDBLiveStatus(userName, status) {
+function writeSavedLiveStatus(userName, status) {
   liveStatusDB(query={name: userName, liveStatus: status}, mode="write")
 }
+// ------------------------------
 
+
+
+// Discord Webhook functions
 function postDiscordMessage(userName, userInfo) {
   discordChnnelId = discordChannelIds[userName]
 
@@ -134,18 +147,44 @@ function postDiscordMessage(userName, userInfo) {
       }
     }
   ]
-
   const payload = {
     "content": `<@&${notifyRoleIds[userName]}> ${userName}さんが配信を開始しました`,
     "embeds": embeds
   }
-
-  const request_options =
+  const requestOptions =
   {
     "method" : "post",
     "contentType" : "application/json",
     "payload" : JSON.stringify(payload)
   };
-  const res = UrlFetchApp.fetch(PropertiesService.getScriptProperties().getProperty(`${userName}_webhook_url`), request_options)
+  // const res = UrlFetchApp.fetch(PropertiesService.getScriptProperties().getProperty(`${userName}_webhook_url`) + "?wait=true", request_options)
+  const res = UrlFetchApp.fetch("https://discord.com/api/webhooks/808415796283310095/YT8wgZuQqoRQzrV7mVyCLa3aWrJQFZxibBRZmI-w2249Iy1leT3oqTIAKavlQZ9wf5v3?wait=true", requestOptions)
+  const messageId = JSON.parse(res.getContentText())["id"]
+  liveStatusDB({name: userName, notifiedMessageId: messageId}, mode="write")
   console.log(res.getResponseCode())
   }
+function editDiscordMessage(messageId, payload, webhookUrl) {
+  const requestOptions = {
+      "method": "patch",
+      "contentType" : "application/json",
+      "payload": JSON.stringify(payload)
+    }
+    const res = UrlFetchApp(`${webhookUrl}/messages/${messageId}`, requestOptions)
+    console.log(res.getResponseCode())
+}
+function getDiscordMessage(messageId, webhookUrl) {
+  const res = UrlFetchApp(`${webhookUrl}/messages/${messageId}`)
+  return JSON.parse(res.getContentText())
+}
+// ------------------------------
+
+// Discord Webhook utils functions
+function updateDiscordMessage(userName) {
+  const webhookUrl = PropertiesService.getScriptProperties().getProperty(`${userName}_webhook_url`)
+  const messageId = liveStatusDB(query={name: userName})["notifiedMessageId"]
+  const currentMessage = getDiscordMessage(messageId, webhookUrl)
+
+  const messageContent = "［終了］" + currentMessage["content"]
+
+  editDiscordMessage(messageId, {content: messageContent}, webhookUrl)
+}
