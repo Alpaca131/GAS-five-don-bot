@@ -15,13 +15,22 @@ const discordChannelIds = {
     "kun-related": 484104877568688138
     }
 
-  const mildomIds = {
+const mildomIds = {
     "KUN": 10105254,
     "tanaka90": 10724334,
     "Sovault": 10116311,
     "はつめ": 10846882,
     "Mondo": 10429922
   }
+
+const notifyRoleIds = {
+    "KUN": 718449500729114664,
+    "tanaka90": 718450954613162015,
+    "Sovault": 718451311393243139,
+    "はつめ": 718451257332858920,
+    "Mondo": 855021753151651860
+    }
+
 
   const liveStatusDBHandler = new cDbAbstraction.DbAbstraction (cDriverSheet, {
     siloid: 'LiveStatus',
@@ -127,7 +136,7 @@ function postDiscordMessage(userName, userInfo) {
   ]
 
   const payload = {
-    "content": `${userName}さんが配信を開始しました`,
+    "content": `<@&${notifyRoleIds[userName]}> ${userName}さんが配信を開始しました`,
     "embeds": embeds
   }
 
@@ -138,5 +147,5 @@ function postDiscordMessage(userName, userInfo) {
     "payload" : JSON.stringify(payload)
   };
   const res = UrlFetchApp.fetch(PropertiesService.getScriptProperties().getProperty(`${userName}_webhook_url`), request_options)
-  console.log(res.getContentText())
+  console.log(res.getResponseCode())
   }
