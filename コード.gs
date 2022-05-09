@@ -135,7 +135,7 @@ function readSavedPlaybackId(userName) {
   return row[0]["latestPlaybackId"]
 }
 function writePlaybackId(userName, playbackId) {
-  userStatusDB(query={name: userName, latestPlaybackId: playbackId})
+  userStatusDB(query={name: userName, latestPlaybackId: playbackId}, mode="write")
 }
 // ------------------------------
 
@@ -180,11 +180,11 @@ function editDiscordMessage(messageId, payload, webhookUrl) {
       "contentType" : "application/json",
       "payload": JSON.stringify(payload)
     }
-    const res = UrlFetchApp(`${webhookUrl}/messages/${messageId}`, requestOptions)
+    const res = UrlFetchApp.fetch(`${webhookUrl}/messages/${messageId}`, requestOptions)
     console.log(res.getResponseCode())
 }
 function getDiscordMessage(messageId, webhookUrl) {
-  const res = UrlFetchApp(`${webhookUrl}/messages/${messageId}`)
+  const res = UrlFetchApp.fetch(`${webhookUrl}/messages/${messageId}`)
   return JSON.parse(res.getContentText())
 }
 // ------------------------------
@@ -193,22 +193,22 @@ function getDiscordMessage(messageId, webhookUrl) {
 
 // Discord Webhook utils functions
 function updateDiscordMessage(userName) {
-  const webhookUrl = PropertiesService.getScriptProperties().getProperty(`${userName}_webhook_url`)
-  const messageId = userStatusDB(query={name: userName})["notifiedMessageId"]
+  // const webhookUrl = PropertiesService.getScriptProperties().getProperty(`${userName}_webhook_url`)
+  const webhookUrl = PropertiesService.getScriptProperties().getProperty(`test_webhook_url`)
+  const messageId = userStatusDB(query={name: userName}, mode="read")[0]["notifiedMessageId"]
   const currentMessage = getDiscordMessage(messageId, webhookUrl)
-
+  
   const messageContent = "［終了］" + currentMessage["content"]
-
   editDiscordMessage(messageId, {content: messageContent}, webhookUrl)
 }
 
 function updateDiscordEmbed(userName, playbackTitle, playbackUrl) {
-  const webhookUrl = PropertiesService.getScriptProperties().getProperty(`${userName}_webhook_url`)
-  const messageId = userStatusDB(query={name: userName})["notifiedMessageId"]
+  // const webhookUrl = PropertiesService.getScriptProperties().getProperty(`${userName}_webhook_url`)
+  const webhookUrl = PropertiesService.getScriptProperties().getProperty(`test_webhook_url`)
+  const messageId = userStatusDB(query={name: userName}, mode="read")[0]["notifiedMessageId"]
   const currentMessage = getDiscordMessage(messageId, webhookUrl)
   const embed = currentMessage["embeds"][0]
   embed["title"] = `［アーカイブ］${playbackTitle}`
   embed["url"] = playbackUrl
-
   editDiscordMessage(messageId, {embeds: [embed]}, webhookUrl)
 }
