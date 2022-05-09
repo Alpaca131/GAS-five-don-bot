@@ -28,41 +28,45 @@ const notifyRoleIds = {
     "はつめ": 718451257332858920,
     "Mondo": 855021753151651860
     }
-const liveStatusDBHandler = new cDbAbstraction.DbAbstraction (cDriverSheet, {
-    siloid: 'LiveStatus',
+const userStatusDBHandler = new cDbAbstraction.DbAbstraction (cDriverSheet, {
+    siloid: 'userStatus',
     dbid: '1n0JOICASYdAlNMPpSEpweLuCq6d5C-9SPZEQmXIP0Xs'
   })
-const latestPlaybackDBHandler = new cDbAbstraction.DbAbstraction (cDriverSheet, {
-    siloid: 'LatestPlayback',
-    dbid: '1n0JOICASYdAlNMPpSEpweLuCq6d5C-9SPZEQmXIP0Xs'
-  })
-
 
 
 // Main function
 function runRegurarly() {
   for (const userName in mildomIds) {
     const mildomId = mildomIds[userName]
-    /**
-    * @type {boolean}
-    */
+    // live status check
     const result = checkUserLiveStatus(mildomId)
     const isUserLive = result["liveStatus"]
     const userInfo = result["userInfo"]
-    const dbLiveStatus = readSavedLiveStatus(userName)
+    const savedLiveStatus = readSavedLiveStatus(userName)
 
     if (isUserLive == true) {
-      if (dbLiveStatus == false) {
+      if (savedLiveStatus == false) {
         postDiscordMessage(userName, userInfo)
-        writeSavedLiveStatus(userName, true)
+        writeLiveStatus(userName, true)
+      }
+    }
+    else {
+      if (savedLiveStatus == true) {
+        updateDiscordMessage(userName)
+        writeLiveStatus(userName, false)
       }
     }
 
-    else {
-      if (dbLiveStatus == true) {
-        
-        writeSavedLiveStatus(userName, false)
-      }
+    // playback check
+    const latestPlayback = fetchLatastPlayback(mildomId)
+    const savedLatestPlaybackId = readSavedPlaybackId(userName)
+    if (latestPlayback["v_id"] !== savedLatestPlaybackId) {
+      updateDiscordEmbed(
+        userName, 
+        latestPlayback["title"], 
+        `https://www.mildom.com/playback/${mildomId}/${latestPlayback["v_id"]}`
+        )
+      writePlaybackId(userName, latestPlayback["v_id"])
     }
   }
 }
@@ -93,24 +97,24 @@ function fetchLatastPlayback(user_id) {
 
 
 // SpreadSheet DB function
-function liveStatusDB(query, mode) {
+function userStatusDB(query, mode) {
   if (mode == "read") {
-    const value = liveStatusDBHandler.query (query);
+    const value = userStatusDBHandler.query (query);
     return value.data
   }
   else {
     const name = query["name"]
-    const existingData = liveStatusDBHandler.query ({name: name})
+    const existingData = userStatusDBHandler.query ({name: name})
     if (existingData.data.length > 0) {
       const existingRow = existingData.data[0]
-      // ROWにはあるがqueryにはないkeyを抽出
+      // ROWにはあるがqueryにはない(=更新しない)keyを抽出
       for (const key in query) {
         delete existingRow[key]
       }
       query = Object.assign(existingRow, query)
-      liveStatusDBHandler.remove ({name: name})
+      userStatusDBHandler.remove ({name: name})
     }
-    liveStatusDBHandler.save (query);
+    userStatusDBHandler.save (query);
   }
 }
 // ------------------------------
@@ -118,12 +122,20 @@ function liveStatusDB(query, mode) {
 
 
 // SpreadSheet DB utlis functions
-function readSavedLiveStatus(user_name) {
-  const liveStatus = liveStatusDB(query={name: user_name}, mode="read")
-  return liveStatus[0]["liveStatus"]
+function readSavedLiveStatus(userName) {
+  const row = userStatusDB(query={name: userName}, mode="read")
+  return row[0]["liveStatus"]
 }
-function writeSavedLiveStatus(userName, status) {
-  liveStatusDB(query={name: userName, liveStatus: status}, mode="write")
+function writeLiveStatus(userName, status) {
+  userStatusDB(query={name: userName, liveStatus: status}, mode="write")
+}
+
+function readSavedPlaybackId(userName) {
+  const row = userStatusDB({name: userName}, mode="read")
+  return row[0]["latestPlaybackId"]
+}
+function writePlaybackId(userName, playbackId) {
+  userStatusDB(query={name: userName, latestPlaybackId: playbackId})
 }
 // ------------------------------
 
@@ -132,11 +144,10 @@ function writeSavedLiveStatus(userName, status) {
 // Discord Webhook functions
 function postDiscordMessage(userName, userInfo) {
   discordChnnelId = discordChannelIds[userName]
-
   const embeds = [
     {
       "title": userInfo["anchor_intro"],
-      "description": "",
+      "url": `https://www.mildom.com/${userInfo["user_id"]}`,
       "color": 0x00d9ff,
       "thumbnail": {
         "url": userInfo["pic"]
@@ -157,11 +168,12 @@ function postDiscordMessage(userName, userInfo) {
     "contentType" : "application/json",
     "payload" : JSON.stringify(payload)
   };
-  const res = UrlFetchApp.fetch(PropertiesService.getScriptProperties().getProperty(`${userName}_webhook_url`) + "?wait=true", request_options)
+  const res = UrlFetchApp.fetch(PropertiesService.getScriptProperties().getProperty(`${userName}_webhook_url`) + "?wait=true", requestOptions)
   const messageId = JSON.parse(res.getContentText())["id"]
-  liveStatusDB({name: userName, notifiedMessageId: messageId}, mode="write")
+  userStatusDB({name: userName, notifiedMessageId: messageId}, mode="write")
   console.log(res.getResponseCode())
   }
+
 function editDiscordMessage(messageId, payload, webhookUrl) {
   const requestOptions = {
       "method": "patch",
@@ -177,13 +189,26 @@ function getDiscordMessage(messageId, webhookUrl) {
 }
 // ------------------------------
 
+
+
 // Discord Webhook utils functions
 function updateDiscordMessage(userName) {
   const webhookUrl = PropertiesService.getScriptProperties().getProperty(`${userName}_webhook_url`)
-  const messageId = liveStatusDB(query={name: userName})["notifiedMessageId"]
+  const messageId = userStatusDB(query={name: userName})["notifiedMessageId"]
   const currentMessage = getDiscordMessage(messageId, webhookUrl)
 
   const messageContent = "［終了］" + currentMessage["content"]
 
   editDiscordMessage(messageId, {content: messageContent}, webhookUrl)
+}
+
+function updateDiscordEmbed(userName, playbackTitle, playbackUrl) {
+  const webhookUrl = PropertiesService.getScriptProperties().getProperty(`${userName}_webhook_url`)
+  const messageId = userStatusDB(query={name: userName})["notifiedMessageId"]
+  const currentMessage = getDiscordMessage(messageId, webhookUrl)
+  const embed = currentMessage["embeds"][0]
+  embed["title"] = `［アーカイブ］${playbackTitle}`
+  embed["url"] = playbackUrl
+
+  editDiscordMessage(messageId, {embeds: [embed]}, webhookUrl)
 }
