@@ -25,7 +25,7 @@ const notifyRoleIds = {
     "KUN": 718449500729114664,
     "tanaka90": 718450954613162015,
     "Sovault": 718451311393243139,
-    "はつめ": 718451257332858920,
+    "はつめ": 855021425952686113,
     "Mondo": 855021753151651860
     }
 const userStatusDBHandler = new cDbAbstraction.DbAbstraction (cDriverSheet, {
@@ -146,6 +146,8 @@ function postDiscordMessage(userName, userInfo) {
   discordChnnelId = discordChannelIds[userName]
   const embeds = [
     {
+      "username": "オウム返しBot",
+      "avatar_url": "https://cdn.discordapp.com/avatars/718034684533145605/67b7cb6b5989122aadc3d7b0f1915a06.webp",
       "title": userInfo["anchor_intro"],
       "url": `https://www.mildom.com/${userInfo["user_id"]}`,
       "color": 0x00d9ff,
@@ -168,7 +170,8 @@ function postDiscordMessage(userName, userInfo) {
     "contentType" : "application/json",
     "payload" : JSON.stringify(payload)
   };
-  const res = UrlFetchApp.fetch(PropertiesService.getScriptProperties().getProperty(`${userName}_webhook_url`) + "?wait=true", requestOptions)
+  // const res = UrlFetchApp.fetch(PropertiesService.getScriptProperties().getProperty(`${userName}_webhook_url`) + "?wait=true", requestOptions)
+  const res = UrlFetchApp.fetch(PropertiesService.getScriptProperties().getProperty(`test_webhook_url`) + "?wait=true", requestOptions)
   const messageId = JSON.parse(res.getContentText())["id"]
   userStatusDB({name: userName, notifiedMessageId: messageId}, mode="write")
   console.log(res.getResponseCode())
