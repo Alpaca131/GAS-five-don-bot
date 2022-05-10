@@ -146,8 +146,6 @@ function postDiscordMessage(userName, userInfo) {
   discordChnnelId = discordChannelIds[userName]
   const embeds = [
     {
-      "username": "オウム返しBot",
-      "avatar_url": "https://cdn.discordapp.com/avatars/718034684533145605/67b7cb6b5989122aadc3d7b0f1915a06.webp",
       "title": userInfo["anchor_intro"],
       "url": `https://www.mildom.com/${userInfo["user_id"]}`,
       "color": 0x00d9ff,
@@ -161,6 +159,8 @@ function postDiscordMessage(userName, userInfo) {
     }
   ]
   const payload = {
+    "username": "オウム返しBot",
+    "avatar_url": "https://cdn.discordapp.com/avatars/718034684533145605/67b7cb6b5989122aadc3d7b0f1915a06.webp",
     "content": `<@&${notifyRoleIds[userName]}> ${userName}さんが配信を開始しました`,
     "embeds": embeds
   }
