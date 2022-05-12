@@ -22,16 +22,17 @@ const mildomIds = {
     "Mondo": 10429922
   }
 const notifyRoleIds = {
-    "KUN": 718449500729114664,
-    "tanaka90": 718450954613162015,
-    "Sovault": 718451311393243139,
-    "はつめ": 855021425952686113,
-    "Mondo": 855021753151651860
+    "KUN": "718449500729114664",
+    "tanaka90": "718450954613162015",
+    "Sovault": "718451311393243139",
+    "はつめ": "855021425952686113",
+    "Mondo": "855021753151651860"
     }
 const userStatusDBHandler = new cDbAbstraction.DbAbstraction (cDriverSheet, {
     siloid: 'userStatus',
     dbid: '1n0JOICASYdAlNMPpSEpweLuCq6d5C-9SPZEQmXIP0Xs'
   })
+
 
 
 // Main function
@@ -161,7 +162,7 @@ function postDiscordMessage(userName, userInfo) {
   const payload = {
     "username": "オウム返しBot",
     "avatar_url": "https://cdn.discordapp.com/avatars/718034684533145605/67b7cb6b5989122aadc3d7b0f1915a06.webp",
-    "content": `<@&${notifyRoleIds[userName].toString()}> ${userName}さんが配信を開始しました`,
+    "content": `<@&${notifyRoleIds[userName]}> ${userName}さんが配信を開始しました`,
     "embeds": embeds
   }
   const requestOptions =
@@ -195,8 +196,7 @@ function getDiscordMessage(messageId, webhookUrl) {
 
 // Discord Webhook utils functions
 function updateDiscordMessage(userName) {
-  // const webhookUrl = PropertiesService.getScriptProperties().getProperty(`${userName}_webhook_url`)
-  const webhookUrl = PropertiesService.getScriptProperties().getProperty(`test_webhook_url`)
+  const webhookUrl = PropertiesService.getScriptProperties().getProperty(`${userName}_webhook_url`)
   const messageId = userStatusDB(query={name: userName}, mode="read")[0]["notifiedMessageId"]
   const currentMessage = getDiscordMessage(messageId, webhookUrl)
   
@@ -205,8 +205,7 @@ function updateDiscordMessage(userName) {
 }
 
 function updateDiscordEmbed(userName, playbackTitle, playbackUrl) {
-  // const webhookUrl = PropertiesService.getScriptProperties().getProperty(`${userName}_webhook_url`)
-  const webhookUrl = PropertiesService.getScriptProperties().getProperty(`test_webhook_url`)
+  const webhookUrl = PropertiesService.getScriptProperties().getProperty(`${userName}_webhook_url`)
   const messageId = userStatusDB(query={name: userName}, mode="read")[0]["notifiedMessageId"]
   const currentMessage = getDiscordMessage(messageId, webhookUrl)
   const embed = currentMessage["embeds"][0]
